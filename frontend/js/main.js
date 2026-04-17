@@ -11,6 +11,7 @@ const langSelect    = document.getElementById('lang-select');
 const traceBtn      = document.getElementById('trace-btn');
 const clearBtn      = document.getElementById('clear-btn');
 const sampleBtn     = document.getElementById('sample-btn');
+const themeToggle   = document.getElementById('theme-toggle');
 
 const emptyState    = document.getElementById('empty-state');
 const loadingState  = document.getElementById('loading-state');
@@ -45,10 +46,34 @@ const pipeSteps = {
   video:  document.getElementById('pipe-video'),
 };
 
+// ── Theme management ──────────────────────────────────────────────────────────
+(function applyStoredTheme() {
+  const stored = localStorage.getItem('trace-theme');
+  if (stored === 'light') {
+    document.documentElement.classList.add('light-mode');
+  }
+})();
+
+function toggleTheme() {
+  const root   = document.documentElement;
+  const isNowLight = root.classList.toggle('light-mode');
+  localStorage.setItem('trace-theme', isNowLight ? 'light' : 'dark');
+  // Update CodeMirror theme (dark=true when NOT light-mode)
+  if (window.TraceEditor && TraceEditor.setEditorTheme) {
+    TraceEditor.setEditorTheme(!isNowLight);
+  }
+  themeToggle.setAttribute('aria-label',
+    isNowLight ? 'Switch to dark mode' : 'Switch to light mode');
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   TraceEditor.initEditor();
   bindEvents();
+  // Sync toggle aria-label to current state
+  const isLight = document.documentElement.classList.contains('light-mode');
+  themeToggle.setAttribute('aria-label',
+    isLight ? 'Switch to dark mode' : 'Switch to light mode');
 });
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -67,6 +92,10 @@ function bindEvents() {
   });
 
   stepsToggle.addEventListener('click', toggleSteps);
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', toggleTheme);
+  }
 }
 
 // ── Main trace flow ───────────────────────────────────────────────────────────
