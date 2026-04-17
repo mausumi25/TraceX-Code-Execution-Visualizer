@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⟨trace⟩ — Code Execution Visualizer</title>
+  <meta name="description"
+        content="Trace visualizes your code's step-by-step execution as an animated video — with syntax highlighting, variable tracking, and call-stack display." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- CodeMirror 5 -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css" />
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/one-dark.min.css" />
+
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ NAV ══════ -->
+<nav class="navbar" role="banner">
+  <div class="nav-logo">
+    <span class="logo-bracket">&langle;</span>trace<span class="logo-bracket">&rangle;</span>
+  </div>
+  <div class="nav-tagline">Step-by-step code execution visualizer</div>
+  <div class="nav-badges">
+    <span class="badge badge-python" id="badge-python">Python</span>
+    <span class="badge badge-js"     id="badge-js">JavaScript</span>
+    <span class="badge badge-c"      id="badge-c">C</span>
+    <span class="badge badge-cpp"    id="badge-cpp">C++</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ MAIN GRID ══ -->
+<main class="app-grid" role="main">
+
+  <!-- ─────────────────────────── LEFT COLUMN ─────────────────────────── -->
+  <section class="panel editor-panel" aria-label="Code editor">
+
+    <!-- Toolbar -->
+    <div class="panel-toolbar">
+      <div class="toolbar-left">
+        <label for="lang-select" class="sr-only">Language</label>
+        <select id="lang-select" class="lang-select" aria-label="Select programming language">
+          <option value="python">🐍  Python</option>
+          <option value="javascript">🟡  JavaScript</option>
+          <option value="c">⚙️  C</option>
+          <option value="cpp">🔷  C++</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button id="clear-btn"  class="btn btn-ghost" type="button" title="Clear editor">Clear</button>
+        <button id="sample-btn" class="btn btn-ghost" type="button" title="Load sample code">Sample</button>
+        <button id="trace-btn"  class="btn btn-primary" type="button" aria-label="Run trace">
+          <span class="btn-icon">▶</span> Run Trace
+        </button>
+      </div>
+    </div>
+
+    <!-- CodeMirror editor mount -->
+    <div class="editor-wrapper" id="editor-wrapper">
+      <textarea id="code-editor" aria-label="Code input area"
+                placeholder="Paste your code here…"></textarea>
+    </div>
+
+    <!-- Pipeline status -->
+    <div class="pipeline" id="pipeline" aria-live="polite" aria-label="Trace pipeline status">
+      <div class="pipe-step" id="pipe-syntax" data-step="syntax">
+        <span class="pipe-dot"></span><span class="pipe-label">Syntax Check</span>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step" id="pipe-trace" data-step="trace">
+        <span class="pipe-dot"></span><span class="pipe-label">Tracing</span>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step" id="pipe-frames" data-step="frames">
+        <span class="pipe-dot"></span><span class="pipe-label">Rendering Frames</span>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step" id="pipe-video" data-step="video">
+        <span class="pipe-dot"></span><span class="pipe-label">Building Video</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── RIGHT COLUMN ────────────────────────── -->
+  <section class="panel result-panel" aria-label="Trace results">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">⟨/⟩</div>
+      <h2 class="empty-title">Ready to trace</h2>
+      <p class="empty-sub">Write or paste code on the left, then click <strong>Run Trace</strong>.</p>
+      <ul class="empty-features">
+        <li>🔍 Syntax error detection</li>
+        <li>🎬 Step-by-step video generation</li>
+        <li>📊 Variable &amp; call-stack tracking</li>
+        <li>🌐 Python · JavaScript · C · C++</li>
+      </ul>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state hidden" id="loading-state" aria-label="Generating trace video">
+      <div class="spinner"></div>
+      <p class="loading-msg" id="loading-msg">Analysing code…</p>
+      <p class="loading-sub">This may take 15–60 seconds for longer programs.</p>
+    </div>
+
+    <!-- Error state -->
+    <div class="error-state hidden" id="error-state" role="alert">
+      <div class="error-icon">⚠</div>
+      <h3 class="error-title" id="error-title">Error</h3>
+      <p class="error-body"  id="error-body"></p>
+      <p class="error-line"  id="error-line"></p>
+    </div>
+
+    <!-- Result state -->
+    <div class="result-state hidden" id="result-state">
+
+      <!-- Video player -->
+      <div class="video-container" id="video-container">
+        <video id="trace-video" class="trace-video" controls preload="metadata"
+               aria-label="Execution trace video">
+          Your browser does not support the video tag.
+        </video>
+        <div class="video-overlay" id="video-overlay">
+          <span class="video-badge" id="video-step-badge">Step 1</span>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-steps">0</div>
+          <div class="stat-label">Steps</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-lang">—</div>
+          <div class="stat-label">Language</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-lines">0</div>
+          <div class="stat-label">Code Lines</div>
+        </div>
+        <div class="stat-card" id="stat-error-card" style="display:none">
+          <div class="stat-value" style="color:var(--red)">⚠</div>
+          <div class="stat-label">Runtime Error</div>
+        </div>
+      </div>
+
+      <!-- Step table -->
+      <div class="steps-section">
+        <button class="steps-toggle" id="steps-toggle" type="button"
+                aria-expanded="false" aria-controls="steps-table-wrapper">
+          Execution Steps <span class="steps-count" id="steps-count">0</span>
+          <span class="steps-chevron" id="steps-chevron">▼</span>
+        </button>
+        <div class="steps-table-wrapper hidden" id="steps-table-wrapper">
+          <table class="steps-table" id="steps-table" aria-label="Execution steps">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Line</th>
+                <th>Event</th>
+                <th>Variables</th>
+                <th>Output</th>
+              </tr>
+            </thead>
+            <tbody id="steps-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Download -->
+      <div class="download-row">
+        <a id="download-link" class="btn btn-ghost" download="trace.mp4">⬇ Download Video</a>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ══════════════════════════════════════════════════════ FOOTER ══════ -->
+<footer class="app-footer" role="contentinfo">
+  <span>⟨trace⟩ &nbsp;·&nbsp; Code Execution Visualizer</span>
+  <span>Python · JavaScript · C</span>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════ SCRIPTS ═════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
+
+<script src="/js/editor.js"></script>
+<script src="/js/player.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
