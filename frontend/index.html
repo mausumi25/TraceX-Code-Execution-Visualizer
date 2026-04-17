@@ -10,19 +10,19 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
 
-  <!-- CodeMirror 5 -->
+  <!-- CodeMirror 5 — dark theme -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css" />
-  <link rel="stylesheet"
+  <link rel="stylesheet" id="cm-theme-dark"
         href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/one-dark.min.css" />
 
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════ NAV ══════ -->
+<!-- ══════════════════════════════════════════════════════════════ NAV ════ -->
 <nav class="navbar" role="banner">
   <div class="nav-logo">
     <span class="logo-bracket">&langle;</span>trace<span class="logo-bracket">&rangle;</span>
@@ -34,17 +34,26 @@
     <span class="badge badge-c"      id="badge-c">C</span>
     <span class="badge badge-cpp"    id="badge-cpp">C++</span>
   </div>
+
+  <!-- Dark / Light toggle -->
+  <button class="theme-toggle" id="theme-toggle" type="button"
+          aria-label="Toggle dark / light mode" title="Toggle theme">
+    <span class="theme-icon theme-icon-sun" aria-hidden="true">☀️</span>
+    <div class="theme-toggle-pill" aria-hidden="true"></div>
+    <span class="theme-icon theme-icon-moon" aria-hidden="true">🌙</span>
+  </button>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════ MAIN GRID ══ -->
+<!-- ═══════════════════════════════════════════════════════ MAIN GRID ═════ -->
 <main class="app-grid" role="main">
 
-  <!-- ─────────────────────────── LEFT COLUMN ─────────────────────────── -->
+  <!-- ─────────────────────────── LEFT: EDITOR PANEL ──────────────────── -->
   <section class="panel editor-panel" aria-label="Code editor">
 
     <!-- Toolbar -->
     <div class="panel-toolbar">
       <div class="toolbar-left">
+        <span class="tab-chip active">💻 Code</span>
         <label for="lang-select" class="sr-only">Language</label>
         <select id="lang-select" class="lang-select" aria-label="Select programming language">
           <option value="python">🐍  Python</option>
@@ -73,34 +82,43 @@
       <div class="pipe-step" id="pipe-syntax" data-step="syntax">
         <span class="pipe-dot"></span><span class="pipe-label">Syntax Check</span>
       </div>
-      <div class="pipe-arrow">→</div>
+      <div class="pipe-arrow">›</div>
       <div class="pipe-step" id="pipe-trace" data-step="trace">
         <span class="pipe-dot"></span><span class="pipe-label">Tracing</span>
       </div>
-      <div class="pipe-arrow">→</div>
+      <div class="pipe-arrow">›</div>
       <div class="pipe-step" id="pipe-frames" data-step="frames">
         <span class="pipe-dot"></span><span class="pipe-label">Rendering Frames</span>
       </div>
-      <div class="pipe-arrow">→</div>
+      <div class="pipe-arrow">›</div>
       <div class="pipe-step" id="pipe-video" data-step="video">
         <span class="pipe-dot"></span><span class="pipe-label">Building Video</span>
       </div>
     </div>
   </section>
 
-  <!-- ─────────────────────────── RIGHT COLUMN ────────────────────────── -->
+  <!-- ─────────────────────────── RIGHT: RESULT PANEL ─────────────────── -->
   <section class="panel result-panel" aria-label="Trace results">
+
+    <!-- Panel header row -->
+    <div class="result-header">
+      <div class="result-header-title">
+        <span>📊</span> Output
+      </div>
+    </div>
 
     <!-- Empty state -->
     <div class="empty-state" id="empty-state">
       <div class="empty-icon">⟨/⟩</div>
       <h2 class="empty-title">Ready to trace</h2>
-      <p class="empty-sub">Write or paste code on the left, then click <strong>Run Trace</strong>.</p>
+      <p class="empty-sub">Write or paste any code on the left, then click <strong>Run Trace</strong> to visualize its execution.</p>
       <ul class="empty-features">
         <li>🔍 Syntax error detection</li>
-        <li>🎬 Step-by-step video generation</li>
-        <li>📊 Variable &amp; call-stack tracking</li>
-        <li>🌐 Python · JavaScript · C · C++</li>
+        <li>🎬 Step-by-step video</li>
+        <li>📊 Variable tracking</li>
+        <li>📞 Call-stack view</li>
+        <li>🌐 Multi-language support</li>
+        <li>⬇️ MP4 download</li>
       </ul>
     </div>
 
@@ -185,19 +203,20 @@
   </section>
 </main>
 
-<!-- ══════════════════════════════════════════════════════ FOOTER ══════ -->
+<!-- ════════════════════════════════════════════════════════ FOOTER ════════ -->
 <footer class="app-footer" role="contentinfo">
   <span>⟨trace⟩ &nbsp;·&nbsp; Code Execution Visualizer</span>
-  <span>Python · JavaScript · C</span>
+  <span>Python · JavaScript · C · C++</span>
 </footer>
 
-<!-- ══════════════════════════════════════════════════════ SCRIPTS ═════ -->
+<!-- ════════════════════════════════════════════════════════ SCRIPTS ═══════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/clike/clike.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/display/autorefresh.min.js"></script>
 
 <script src="/js/editor.js"></script>
 <script src="/js/player.js"></script>
