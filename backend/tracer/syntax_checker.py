@@ -6,6 +6,7 @@ import ast
 import subprocess
 import tempfile
 import os
+from tracer.cpp_normalizer import normalize as cpp_normalize
 
 
 class SyntaxChecker:
@@ -95,9 +96,12 @@ class SyntaxChecker:
     # ------------------------------------------------------------------ C++
     def _check_cpp(self, code: str) -> dict:
         try:
+            # Auto-prepend headers / main() for LeetCode-style snippets
+            normalized = cpp_normalize(code)
+
             fd, tmpfile = tempfile.mkstemp(suffix=".cpp")
             with os.fdopen(fd, "w") as f:
-                f.write(code)
+                f.write(normalized)
 
             result = subprocess.run(
                 ["g++", "-std=c++17", "-fsyntax-only", tmpfile],

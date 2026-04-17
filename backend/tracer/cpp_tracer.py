@@ -9,6 +9,7 @@ import os
 import tempfile
 import re
 import json
+from tracer.cpp_normalizer import normalize as cpp_normalize
 
 
 _GDB_SCRIPT = """\
@@ -77,9 +78,12 @@ class CppTracer:
         exe_path = src_path + ".out"
         gdb_fd,  gdb_path  = tempfile.mkstemp(suffix=".gdb",  prefix="trace_gdb_")
 
+        # Auto-prepend headers / main() for LeetCode-style snippets
+        normalized_code = cpp_normalize(code)
+
         try:
             with os.fdopen(src_fd, "w") as f:
-                f.write(code)
+                f.write(normalized_code)
 
             # Compile with debug symbols; C++17 for modern code
             compile_result = subprocess.run(
