@@ -88,40 +88,22 @@ int main() {
 }
 `,
 
-  cpp: `#include <iostream>
-#include <vector>
-#include <unordered_map>
-
-// Two Sum — C++ (LeetCode #1)
-// Given an array of integers nums and an integer target,
-// return indices of the two numbers that add up to target.
+  cpp: `// LeetCode #1 — Two Sum (C++)
+// Paste any LeetCode solution — headers & main() are added automatically!
 
 class Solution {
 public:
-    std::vector<int> twoSum(std::vector<int>& nums, int target) {
-        std::unordered_map<int, int> seen;
-        for (int i = 0; i < (int)nums.size(); i++) {
-            int complement = target - nums[i];
-            if (seen.count(complement)) {
-                return {seen[complement], i};
+    vector<int> twoSum(vector<int>& nums, int target) {
+        int l = nums.size();
+        for (int i = 0; i < l; i++) {
+            for (int j = i + 1; j < l; j++) {
+                if (nums[j] == target - nums[i])
+                    return {i, j};
             }
-            seen[nums[i]] = i;
         }
         return {-1, -1};
     }
 };
-
-int main() {
-    std::vector<int> nums = {2, 7, 11, 15};
-    int target = 9;
-
-    Solution sol;
-    auto result = sol.twoSum(nums, target);
-
-    std::cout << "Input:  nums = [2, 7, 11, 15], target = 9" << std::endl;
-    std::cout << "Output: [" << result[0] << ", " << result[1] << "]" << std::endl;
-    return 0;
-}
 `,
 };
 
