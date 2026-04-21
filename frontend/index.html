@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>⟨trace⟩ — Interactive Code Execution Visualizer</title>
-  <meta name="description" content="Step-by-step code execution visualizer with animated dry-run walkthroughs. Ideal for learning algorithms." />
+  <title>⟨trace⟩ — Interactive Code Visualizer</title>
+  <meta name="description" content="Step-by-step interactive code execution visualizer with animated variable tracking, array visualization, and beginner-friendly explanations." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -12,210 +12,203 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════ NAV ═══════════════════════════════════════ -->
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
 <nav id="navbar">
   <div class="nav-logo">
-    <span class="logo-lt">&langle;</span>trace<span class="logo-rt">&rangle;</span>
+    <span class="logo-bracket">⟨</span>trace<span class="logo-bracket">⟩</span>
   </div>
   <div class="nav-center" id="lang-pills">
-    <button class="lang-btn active" data-lang="python">🐍 Python</button>
-    <button class="lang-btn" data-lang="javascript">🟨 JavaScript</button>
-    <button class="lang-btn" data-lang="c">⚙️ C</button>
-    <button class="lang-btn" data-lang="cpp">🔷 C++</button>
+    <button class="lang-pill active" data-lang="python">🐍 Python</button>
+    <button class="lang-pill" data-lang="javascript">🟨 JavaScript</button>
+    <button class="lang-pill" data-lang="c">⚙️ C</button>
+    <button class="lang-pill" data-lang="cpp">🔷 C++</button>
   </div>
-  <div class="nav-actions">
-    <span id="nav-status" class="nav-status"></span>
-    <button id="theme-btn" class="icon-btn" title="Toggle Theme">☀️</button>
+  <div class="nav-right">
+    <button id="theme-toggle" class="icon-btn" title="Toggle theme">🌙</button>
   </div>
 </nav>
 
-<!-- ═══════════════════════════ SETUP PANEL ═══════════════════════════════ -->
-<main id="setup-panel">
+<!-- ── SETUP PANEL ─────────────────────────────────────────────────────────── -->
+<div id="setup-panel">
 
-  <!-- Code-type toggle -->
+  <!-- Code type toggle -->
   <div id="type-bar">
     <span class="type-label">Code type:</span>
     <div class="type-toggle">
-      <label class="type-opt">
-        <input type="radio" name="code_type" value="complete" checked />
+      <label class="type-opt active" id="type-complete-label">
+        <input type="radio" name="code-type" value="complete" checked id="type-complete" />
         <span>📄 Complete Program</span>
       </label>
-      <label class="type-opt">
-        <input type="radio" name="code_type" value="leetcode" />
-        <span>🧩 LeetCode Function</span>
+      <label class="type-opt" id="type-leetcode-label">
+        <input type="radio" name="code-type" value="leetcode" id="type-leetcode" />
+        <span>🔢 LeetCode Function</span>
       </label>
     </div>
-    <span class="type-hint" id="type-hint">Include <code>main()</code> / entry point</span>
+    <span class="type-hint" id="type-hint">Include main() / top-level code</span>
   </div>
 
-  <!-- Editor row: code left, input right -->
-  <div id="editor-row">
-
-    <!-- Code editor -->
-    <div class="editor-col" id="code-col">
+  <!-- Editor + Custom Input -->
+  <div id="editor-layout">
+    <!-- Left: Code Editor -->
+    <div id="editor-col">
       <div class="panel-toolbar">
-        <span class="toolbar-title" id="editor-lang-label">Python Editor</span>
-        <div class="toolbar-btns">
-          <button id="sample-btn" class="tb-btn">📋 Sample</button>
-          <button id="clear-btn"  class="tb-btn">🗑️ Clear</button>
+        <span class="toolbar-title">Code Editor</span>
+        <div class="toolbar-actions">
+          <button id="clear-btn" class="tool-btn">✕ Clear</button>
+          <button id="sample-btn" class="tool-btn">⚡ Sample</button>
+          <button id="run-btn" class="run-btn">▶ Run Trace</button>
         </div>
       </div>
-      <div id="editor-wrapper">
-        <textarea id="code-editor" spellcheck="false" autocorrect="off" autocomplete="off"
+      <div id="editor-wrap">
+        <div id="line-nums" aria-hidden="true"></div>
+        <textarea id="code-editor"
+          spellcheck="false"
+          autocorrect="off"
+          autocapitalize="off"
           placeholder="Write or paste your code here…"></textarea>
-        <div id="line-numbers" aria-hidden="true"></div>
       </div>
     </div>
 
-    <!-- Custom input + info -->
-    <div class="editor-col" id="input-col">
+    <!-- Right: Custom Input -->
+    <div id="input-col">
       <div class="panel-toolbar">
-        <span class="toolbar-title">Custom Input <span class="opt-badge">optional</span></span>
+        <span class="toolbar-title">Custom Input</span>
+        <button id="clear-input-btn" class="tool-btn">✕ Clear</button>
       </div>
-      <textarea id="custom-input" spellcheck="false"
-        placeholder="Enter input values here (used when code reads from stdin).&#10;&#10;Example:&#10;5&#10;3 1 4 1 5"></textarea>
-
-      <div class="info-card">
-        <h3>💡 How it works</h3>
-        <ol>
-          <li>Select your language above</li>
-          <li>Choose <em>Complete Program</em> or <em>LeetCode Function</em></li>
-          <li>Write or paste your code</li>
-          <li>Add custom input if your code reads from stdin</li>
-          <li>Click <strong>Run Trace</strong> to see the animated dry-run!</li>
-        </ol>
-        <p class="info-sub">The visualizer shows <strong>array comparisons</strong>, <strong>variable updates</strong>, <strong>swaps</strong>, and <strong>function calls</strong> — step by step, just like a teacher on a whiteboard.</p>
+      <textarea id="custom-input"
+        spellcheck="false"
+        placeholder="Enter input values (stdin)…&#10;&#10;Example:&#10;5&#10;1 2 3 4 5"></textarea>
+      <div class="input-hint">
+        <strong>Tip:</strong> Values entered here are passed as standard input
+        to your program — useful for <code>input()</code>, <code>scanf()</code>, <code>cin</code>.
       </div>
     </div>
-
-  </div><!-- /editor-row -->
-
-  <!-- Run action bar -->
-  <div id="action-bar">
-    <div id="error-inline" class="hidden">
-      <span class="err-icon">⛔</span>
-      <span id="error-inline-text"></span>
-    </div>
-    <button id="run-btn">
-      <span id="run-icon">▶</span>
-      <span id="run-text">Run Trace</span>
-    </button>
   </div>
 
-</main><!-- /setup-panel -->
+</div><!-- /setup-panel -->
 
-<!-- ═══════════════════════════ LOADING ═══════════════════════════════════ -->
+<!-- ── ERROR PANEL ─────────────────────────────────────────────────────────── -->
+<div id="error-panel" class="hidden">
+  <div class="error-card">
+    <div class="error-icon">⛔</div>
+    <div class="error-details">
+      <div class="error-kind" id="err-kind">Syntax Error</div>
+      <div class="error-msg"  id="err-msg"></div>
+      <div class="error-loc"  id="err-loc"></div>
+    </div>
+    <button id="err-dismiss" class="icon-btn" title="Dismiss">✕</button>
+  </div>
+</div>
+
+<!-- ── LOADING PANEL ───────────────────────────────────────────────────────── -->
 <div id="loading-panel" class="hidden">
-  <div class="loader-ring"></div>
-  <p class="loader-text">Tracing execution…</p>
-  <p class="loader-sub">Capturing every step of your code</p>
-</div>
-
-<!-- ═══════════════════════════ SYNTAX ERROR ══════════════════════════════ -->
-<div id="syntax-panel" class="hidden">
-  <div class="syntax-card">
-    <div class="syntax-header">
-      <span class="syntax-icon">⛔</span>
-      <h2>Syntax Error Detected</h2>
-    </div>
-    <div class="syntax-body">
-      <div id="syntax-location"></div>
-      <pre id="syntax-message"></pre>
-    </div>
-    <div class="syntax-actions">
-      <p class="syntax-hint">⚠️ Fix the syntax error above before running the trace.</p>
-      <button id="syntax-back-btn" class="back-btn">← Back to Editor</button>
-    </div>
+  <div class="loading-inner">
+    <div class="loader-ring"></div>
+    <div id="loading-msg" class="loading-msg">Analysing code…</div>
+    <div class="loading-sub">Running step-by-step trace</div>
   </div>
 </div>
 
-<!-- ═══════════════════════════ VISUALIZER ════════════════════════════════ -->
+<!-- ── VISUALIZER PANEL ────────────────────────────────────────────────────── -->
 <div id="viz-panel" class="hidden">
 
-  <!-- Viz header -->
+  <!-- Header bar -->
   <div id="viz-header">
-    <button id="viz-back-btn" class="back-btn">← Editor</button>
-    <div id="viz-meta">
-      <span id="viz-algo-name"></span>
+    <div class="viz-header-left">
+      <button id="back-btn" class="back-btn">← Editor</button>
+      <span id="viz-algo-name" class="viz-algo-name"></span>
       <span id="viz-lang-badge" class="lang-badge"></span>
     </div>
-    <button id="download-btn" class="tb-btn" title="Download video (generates on server)">⬇ Download Video</button>
+    <div class="viz-header-right">
+      <span id="viz-step-count" class="step-counter">Step 1 / 1</span>
+      <button id="download-video-btn" class="tool-btn">⬇ Export Video</button>
+    </div>
   </div>
 
   <!-- Runtime error banner (non-blocking) -->
-  <div id="runtime-banner" class="hidden runtime-banner">
-    <span class="rb-icon">⚠️</span>
-    <div class="rb-body">
-      <strong>Runtime Error Detected</strong> — the trace still shows all steps before the crash.
-      <div id="rb-msg" class="rb-msg"></div>
+  <div id="runtime-banner" class="runtime-error-banner hidden">
+    <span class="reb-icon">⚠️</span>
+    <div class="reb-content">
+      <strong>Runtime Error Detected</strong> — The visualizer shows all steps up to the error.
+      <div class="reb-msg" id="reb-msg"></div>
     </div>
-    <button id="rb-close" class="rb-close">✕</button>
+    <button class="reb-close" id="reb-close">✕</button>
   </div>
 
-  <!-- Three-column visualizer -->
+  <!-- Three-column visualization layout -->
   <div id="viz-columns">
 
-    <!-- LEFT: code panel -->
-    <div class="viz-col" id="col-code">
-      <div class="col-hdr">Code <span id="code-line-badge" class="line-badge"></span></div>
-      <div id="viz-code-scroll">
-        <div id="viz-code"></div>
+    <!-- Column 1: Code with live highlight -->
+    <div id="viz-code-col" class="viz-col">
+      <div class="col-header">📄 Code</div>
+      <div id="viz-code" class="viz-code-scroll"></div>
+    </div>
+
+    <!-- Column 2: Data structure animation -->
+    <div id="viz-center-col" class="viz-col viz-col-center">
+      <div class="col-header" id="viz-ds-title">🔢 Visualization</div>
+      <div id="viz-ds" class="viz-ds-area">
+        <div class="ds-placeholder">Run your code to see the visualization</div>
+      </div>
+      <!-- Operation description box -->
+      <div id="viz-op-box" class="viz-op-box hidden">
+        <div id="viz-op-icon" class="op-icon"></div>
+        <div id="viz-op-text" class="op-text"></div>
+      </div>
+      <!-- Output display -->
+      <div id="viz-output-box" class="viz-output-box hidden">
+        <div class="output-hdr">Output</div>
+        <div id="viz-output-text" class="output-text"></div>
       </div>
     </div>
 
-    <!-- CENTRE: data visualization -->
-    <div class="viz-col" id="col-viz">
-      <div class="col-hdr">Algorithm Visualization</div>
-      <div id="viz-array-area">
-        <!-- Array boxes, pointer arrows, comparison zone rendered here -->
-      </div>
-      <div id="viz-output-area" class="hidden">
-        <div class="col-hdr-sm">Output</div>
-        <pre id="viz-output-text"></pre>
-      </div>
-    </div>
+    <!-- Column 3: Explanation + Variables + Call Stack -->
+    <div id="viz-info-col" class="viz-col">
+      <!-- Explanation -->
+      <div class="col-header">💡 What's Happening?</div>
+      <div id="viz-explain" class="viz-explain"></div>
 
-    <!-- RIGHT: explanation + variables + call stack -->
-    <div class="viz-col" id="col-info">
-      <div class="col-hdr">What's Happening?</div>
-      <div id="viz-explain"></div>
+      <!-- Variables -->
+      <div class="col-header col-header-sm">📦 Variables</div>
+      <div id="viz-vars" class="viz-vars"></div>
 
-      <div class="col-hdr-sm" style="margin-top:14px">Variables</div>
-      <div id="viz-vars"></div>
-
-      <div class="col-hdr-sm" style="margin-top:14px">Call Stack</div>
-      <div id="viz-stack"></div>
+      <!-- Call Stack -->
+      <div class="col-header col-header-sm">📚 Call Stack</div>
+      <div id="viz-stack" class="viz-stack"></div>
     </div>
 
   </div><!-- /viz-columns -->
 
-  <!-- Controls bar -->
+  <!-- Progress bar -->
+  <div id="viz-progress-bar">
+    <div id="viz-progress-fill"></div>
+  </div>
+
+  <!-- ── Controls ──────────────────────────────────────────────────────────── -->
   <div id="viz-controls">
-    <div class="ctrl-btns">
-      <button id="ctrl-first" class="ctrl-btn" title="First step">⏮</button>
-      <button id="ctrl-prev"  class="ctrl-btn" title="Previous step">◀</button>
-      <button id="ctrl-play"  class="ctrl-btn ctrl-play" title="Play / Pause">▶ Play</button>
-      <button id="ctrl-next"  class="ctrl-btn" title="Next step">▶</button>
-      <button id="ctrl-last"  class="ctrl-btn" title="Last step">⏭</button>
+    <button id="ctrl-first" class="ctrl-btn" title="Go to first step">⏮</button>
+    <button id="ctrl-prev"  class="ctrl-btn" title="Previous step">⏪</button>
+    <button id="ctrl-play"  class="ctrl-btn ctrl-play" title="Play / Pause">▶</button>
+    <button id="ctrl-next"  class="ctrl-btn" title="Next step">⏩</button>
+    <button id="ctrl-last"  class="ctrl-btn" title="Go to last step">⏭</button>
+
+    <div class="ctrl-speed">
+      <label for="speed-select" class="speed-lbl">Speed</label>
+      <select id="speed-select" class="speed-select">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+        <option value="8">8×</option>
+      </select>
     </div>
 
-    <div class="ctrl-center">
-      <div id="progress-track">
-        <div id="progress-fill"></div>
-      </div>
-      <span id="step-count">Step 1 / 1</span>
+    <div class="ctrl-scrub">
+      <input type="range" id="step-scrubber" min="0" value="0" step="1" />
     </div>
 
-    <div class="ctrl-right">
-      <label class="speed-label">Speed</label>
-      <div class="speed-opts">
-        <button class="speed-btn" data-speed="0.5">0.5×</button>
-        <button class="speed-btn active" data-speed="1">1×</button>
-        <button class="speed-btn" data-speed="2">2×</button>
-        <button class="speed-btn" data-speed="4">4×</button>
-      </div>
-    </div>
-  </div><!-- /controls -->
+    <div class="ctrl-info" id="ctrl-step-info">Step 1 / 1</div>
+  </div>
 
 </div><!-- /viz-panel -->
 
