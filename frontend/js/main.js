@@ -172,9 +172,9 @@ async function runTrace() {
   }
 }
 
-// ── Render results ────────────────────────────────────────────────────────────
+// ── Render results ───────────────────────────────────────────────────────────────────
 function renderResults(data) {
-  const { video_url, steps, total_steps, has_runtime_error, language } = data;
+  const { video_url, steps, total_steps, has_runtime_error, runtime_error_msg, language } = data;
   const code = TraceEditor.getCode();
 
   // Stats
@@ -183,11 +183,34 @@ function renderResults(data) {
   statLines.textContent = code.split('\n').length;
   statErrCard.style.display = has_runtime_error ? '' : 'none';
 
+  // Runtime error warning banner (non-blocking — video still plays)
+  const existingBanner = document.getElementById('runtime-error-banner');
+  if (existingBanner) existingBanner.remove();
+
+  if (has_runtime_error && runtime_error_msg) {
+    const banner = document.createElement('div');
+    banner.id = 'runtime-error-banner';
+    banner.className = 'runtime-error-banner';
+    banner.innerHTML = `
+      <div class="reb-icon">⚠️</div>
+      <div class="reb-content">
+        <strong>Runtime Error Detected</strong> — The video still shows all execution steps.
+        <div class="reb-msg">${escHtml(runtime_error_msg)}</div>
+      </div>
+      <button class="reb-close" onclick="this.parentElement.remove()" title="Dismiss">✕</button>
+    `;
+    // Insert banner above the video container
+    const videoContainer = document.getElementById('video-container');
+    if (videoContainer) {
+      videoContainer.parentElement.insertBefore(banner, videoContainer);
+    }
+  }
+
   // Steps table
   stepsCount.textContent = total_steps;
   buildStepsTable(steps);
 
-  // Video
+  // Video — always load regardless of runtime errors
   const fullUrl = `${API_BASE}${video_url}`;
   downloadLink.href = fullUrl;
   TracePlayer.init(traceVideo, videoBadge, stepsTbody, steps, 2);
