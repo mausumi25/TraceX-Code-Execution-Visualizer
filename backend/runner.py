@@ -2,6 +2,14 @@
 runner.py  —  Trace Flask API entry point
 Start with:  python runner.py
 Serves the API at /api/* and the frontend at /
+
+Policy
+------
+* ONLY syntax errors block the pipeline and return an error response.
+* Runtime errors / logical errors -> still generate a video showing all
+  traced steps up to (and including) the error frame.  The response will
+  carry  has_runtime_error=True  and  runtime_error_msg  so the frontend
+  can display a warning banner while still playing the video.
 """
 import os
 import uuid
@@ -56,6 +64,8 @@ def trace():
         return jsonify({"error": f"Unsupported language: '{language}'."}), 400
 
     # ── 1. Syntax check ───────────────────────────────────────────────────────
+    # ONLY a syntax error stops the pipeline here.  Runtime / logical errors
+    # are surfaced inside the video as a clearly labelled error frame.
     checker        = SyntaxChecker()
     syntax_result  = checker.check(code, language)
 
@@ -67,6 +77,9 @@ def trace():
         }), 200   # 200 so the frontend can display the message
 
     # ── 2. Trace execution ────────────────────────────────────────────────────
+    # Runtime errors inside the user's code are captured as steps by the
+    # tracer; they do NOT raise exceptions here.  Exceptions here would only
+    # be an internal bug in the tracer itself.
     try:
         if language == "python":
             steps = PythonTracer().trace(code)
@@ -80,16 +93,26 @@ def trace():
         return jsonify({"error": f"Tracer internal error: {exc}"}), 500
 
     if not steps:
+        # Even if the only captured step is an error step, we continue.
+        # A completely empty step list means the tracer itself failed.
         return jsonify({"error": "No execution steps were captured."}), 500
 
-    has_runtime_error = any(
-        s.get("event") in ("error", "exception") for s in steps
-    )
+    # Collect any runtime error message to surface in the response.
+    # This does NOT stop video generation.
+    runtime_error_msg = None
+    has_runtime_error = False
+    for s in steps:
+        if s.get("event") in ("error", "exception") and s.get("error"):
+            has_runtime_error = True
+            if runtime_error_msg is None:
+                runtime_error_msg = s["error"]
 
     # ── 3. Build frames ───────────────────────────────────────────────────────
+    # Pass has_runtime_error so the builder can add a final error summary frame
     code_lines  = code.split("\n")
     builder     = FrameBuilder(code_lines, language)
-    frame_paths = builder.build_frames(steps)
+    frame_paths = builder.build_frames(steps, has_runtime_error=has_runtime_error,
+                                       runtime_error_msg=runtime_error_msg)
 
     if not frame_paths:
         return jsonify({"error": "Frame generation produced no output."}), 500
@@ -112,11 +135,12 @@ def trace():
                 pass
 
     return jsonify({
-        "video_url":        f"/static/videos/{video_filename}",
-        "steps":            steps,
-        "total_steps":      len(steps),
-        "has_runtime_error": has_runtime_error,
-        "language":         language,
+        "video_url":          f"/static/videos/{video_filename}",
+        "steps":              steps,
+        "total_steps":        len(steps),
+        "has_runtime_error":  has_runtime_error,
+        "runtime_error_msg":  runtime_error_msg,
+        "language":           language,
     })
 
 
@@ -149,7 +173,7 @@ def favicon():
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("\n  ⟨trace⟩  Code Execution Visualizer")
-    print("  Running at  →  http://localhost:5000\n")
+    print("\n  [trace]  Code Execution Visualizer")
+    print("  Running at  ->  http://localhost:5000\n")
     # use_reloader=False prevents sys.settrace conflicts with Flask reloader
     app.run(debug=True, port=5000, use_reloader=False)
