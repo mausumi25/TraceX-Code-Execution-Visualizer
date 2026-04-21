@@ -5,7 +5,7 @@ Renders each execution step as a 1280×720 PNG using Pillow.
 Layout
 ------
 ┌────────────────────────────────────────────────────────────┐
-│  HEADER: logo · language badge · step counter · event badge│
+│  HEADER: logo · language badge · step counter · event badge  │
 ├─────────────────────────────────┬──────────────────────────┤
 │   CODE PANEL (760 px wide)      │  SIDE PANEL (520 px)     │
 │   gutter + highlighted code     │  VARIABLES               │
@@ -161,12 +161,31 @@ class FrameBuilder:
 
         self.temp_dir = tempfile.mkdtemp(prefix="trace_frames_")
 
-    # ── Public API ────────────────────────────────────────────────────────────
-    def build_frames(self, steps: list[dict]) -> list[str]:
-        total = len(steps)
-        return [self._build_frame(s, i + 1, total) for i, s in enumerate(steps)]
+    # ── Public API ───────────────────────────────────────────────────────────────────
+    def build_frames(
+        self,
+        steps: list[dict],
+        has_runtime_error: bool = False,
+        runtime_error_msg: str | None = None,
+    ) -> list[str]:
+        """Build one PNG frame per execution step.
 
-    # ── Frame assembly ────────────────────────────────────────────────────────
+        If has_runtime_error is True, a final full-screen error-summary frame
+        is appended so the viewer clearly sees what went wrong while still
+        having watched all prior execution steps.
+        """
+        total = len(steps)
+        paths = [self._build_frame(s, i + 1, total) for i, s in enumerate(steps)]
+
+        if has_runtime_error and runtime_error_msg:
+            err_path = self._build_error_summary_frame(
+                runtime_error_msg, total + 1
+            )
+            paths.append(err_path)
+
+        return paths
+
+    # ── Frame assembly ───────────────────────────────────────────────────────────────────
     def _build_frame(self, step: dict, step_num: int, total: int) -> str:
         img  = Image.new("RGB", (FRAME_W, FRAME_H), BG)
         draw = ImageDraw.Draw(img)
@@ -180,6 +199,68 @@ class FrameBuilder:
         draw.rectangle([CODE_W, HEADER_H, CODE_W + 1, FRAME_H - FOOTER_H], fill=BORDER)
 
         path = os.path.join(self.temp_dir, f"frame_{step_num:04d}.png")
+        img.save(path, "PNG", optimize=False)
+        return path
+
+    # ── Error summary frame ─────────────────────────────────────────────────────────────────
+    def _build_error_summary_frame(self, error_msg: str, frame_num: int) -> str:
+        """Full-screen frame clearly showing the runtime error."""
+        img  = Image.new("RGB", (FRAME_W, FRAME_H), (20, 10, 10))  # deep dark red BG
+        draw = ImageDraw.Draw(img)
+
+        # Top warning stripe
+        draw.rectangle([0, 0, FRAME_W, 8], fill=ACCENT_RED)
+
+        # Logo in header
+        draw.text((20, 20), "\u27e8trace\u27e9", fill=ACCENT_CYAN, font=self.f_header)
+        lbl = "RUNTIME ERROR"
+        lbl_w = _text_w(draw, lbl, self.f_header)
+        draw.text(((FRAME_W - lbl_w) // 2, 20), lbl, fill=ACCENT_RED, font=self.f_header)
+
+        # Divider
+        draw.rectangle([0, 52, FRAME_W, 54], fill=(80, 20, 20))
+
+        # Big warning icon centred
+        warn_text = "\u26a0"
+        warn_font = _load_font(72, mono=False)
+        ww = _text_w(draw, warn_text, warn_font)
+        draw.text(((FRAME_W - ww) // 2, 100), warn_text, fill=ACCENT_RED, font=warn_font)
+
+        # Title
+        title = "Execution stopped with a Runtime Error"
+        title_font = _load_font(22, mono=False)
+        tw = _text_w(draw, title, title_font)
+        draw.text(((FRAME_W - tw) // 2, 210), title, fill=TEXT, font=title_font)
+
+        # Error box
+        box_x0, box_y0 = 80, 260
+        box_x1, box_y1 = FRAME_W - 80, 260 + 180
+        _rrect(draw, [box_x0, box_y0, box_x1, box_y1], radius=10,
+               fill=(40, 15, 15), outline=ACCENT_RED, width=2)
+
+        # Error message lines
+        lines = error_msg.replace("\r", "").split("\n")
+        max_chars = max(1, (box_x1 - box_x0 - 30) // max(self._char_w, 1))
+        y_err = box_y0 + 14
+        for li, line in enumerate(lines[:8]):
+            if y_err + 16 > box_y1 - 8:
+                break
+            display = line[:max_chars] + ("\u2026" if len(line) > max_chars else "")
+            draw.text((box_x0 + 15, y_err), display,
+                      fill=(240, 140, 100), font=self.f_code)
+            y_err += 18
+
+        # Note at bottom
+        note = "The video above shows all steps executed before this error occurred."
+        note_font = _load_font(12, mono=False)
+        nw = _text_w(draw, note, note_font)
+        draw.text(((FRAME_W - nw) // 2, box_y1 + 28), note,
+                  fill=TEXT_SEC, font=note_font)
+
+        # Bottom stripe
+        draw.rectangle([0, FRAME_H - 8, FRAME_W, FRAME_H], fill=ACCENT_RED)
+
+        path = os.path.join(self.temp_dir, f"frame_{frame_num:04d}.png")
         img.save(path, "PNG", optimize=False)
         return path
 
