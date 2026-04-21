@@ -15,9 +15,12 @@ class PythonTracer:
         self._call_stack = []
 
     # ------------------------------------------------------------------ public
-    def trace(self, code: str) -> list[dict]:
+    def trace(self, code: str, stdin: str = "") -> list[dict]:
         old_stdout = sys.stdout
+        old_stdin  = sys.stdin
         sys.stdout = self._stdout_buf
+        if stdin:
+            sys.stdin = io.StringIO(stdin)
 
         try:
             compiled = compile(code, "<trace>", "exec")
@@ -35,7 +38,6 @@ class PythonTracer:
         except Exception as exc:
             raw_tb = tb_module.extract_tb(sys.exc_info()[2])
             lineno = raw_tb[-1].lineno if raw_tb else 1
-            # Only add if not already captured by 'exception' event
             if not any(s.get("event") == "exception" for s in self._steps):
                 self._steps.append(self._make_step(
                     line=lineno,
@@ -46,6 +48,7 @@ class PythonTracer:
         finally:
             sys.settrace(None)
             sys.stdout = old_stdout
+            sys.stdin  = old_stdin
 
         return self._steps
 

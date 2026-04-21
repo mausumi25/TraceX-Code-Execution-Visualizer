@@ -3,223 +3,224 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>⟨trace⟩ — Code Execution Visualizer</title>
-  <meta name="description"
-        content="Trace visualizes your code's step-by-step execution as an animated video — with syntax highlighting, variable tracking, and call-stack display." />
-
-  <!-- Google Fonts -->
+  <title>⟨trace⟩ — Interactive Code Execution Visualizer</title>
+  <meta name="description" content="Step-by-step code execution visualizer with animated dry-run walkthroughs. Ideal for learning algorithms." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
-
-  <!-- CodeMirror 5 — dark theme -->
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.css" />
-  <link rel="stylesheet" id="cm-theme-dark"
-        href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/theme/one-dark.min.css" />
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════════ NAV ════ -->
-<nav class="navbar" role="banner">
+<!-- ═══════════════════════════ NAV ═══════════════════════════════════════ -->
+<nav id="navbar">
   <div class="nav-logo">
-    <span class="logo-bracket">&langle;</span>trace<span class="logo-bracket">&rangle;</span>
+    <span class="logo-lt">&langle;</span>trace<span class="logo-rt">&rangle;</span>
   </div>
-  <div class="nav-tagline">Step-by-step code execution visualizer</div>
-  <div class="nav-badges">
-    <span class="badge badge-python" id="badge-python">Python</span>
-    <span class="badge badge-js"     id="badge-js">JavaScript</span>
-    <span class="badge badge-c"      id="badge-c">C</span>
-    <span class="badge badge-cpp"    id="badge-cpp">C++</span>
+  <div class="nav-center" id="lang-pills">
+    <button class="lang-btn active" data-lang="python">🐍 Python</button>
+    <button class="lang-btn" data-lang="javascript">🟨 JavaScript</button>
+    <button class="lang-btn" data-lang="c">⚙️ C</button>
+    <button class="lang-btn" data-lang="cpp">🔷 C++</button>
   </div>
-
-  <!-- Dark / Light toggle -->
-  <button class="theme-toggle" id="theme-toggle" type="button"
-          aria-label="Toggle dark / light mode" title="Toggle theme">
-    <span class="theme-icon theme-icon-sun" aria-hidden="true">☀️</span>
-    <div class="theme-toggle-pill" aria-hidden="true"></div>
-    <span class="theme-icon theme-icon-moon" aria-hidden="true">🌙</span>
-  </button>
+  <div class="nav-actions">
+    <span id="nav-status" class="nav-status"></span>
+    <button id="theme-btn" class="icon-btn" title="Toggle Theme">☀️</button>
+  </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════ MAIN GRID ═════ -->
-<main class="app-grid" role="main">
+<!-- ═══════════════════════════ SETUP PANEL ═══════════════════════════════ -->
+<main id="setup-panel">
 
-  <!-- ─────────────────────────── LEFT: EDITOR PANEL ──────────────────── -->
-  <section class="panel editor-panel" aria-label="Code editor">
-
-    <!-- Toolbar -->
-    <div class="panel-toolbar">
-      <div class="toolbar-left">
-        <span class="tab-chip active">💻 Code</span>
-        <label for="lang-select" class="sr-only">Language</label>
-        <select id="lang-select" class="lang-select" aria-label="Select programming language">
-          <option value="python">🐍  Python</option>
-          <option value="javascript">🟡  JavaScript</option>
-          <option value="c">⚙️  C</option>
-          <option value="cpp">🔷  C++</option>
-        </select>
-      </div>
-      <div class="toolbar-right">
-        <button id="clear-btn"  class="btn btn-ghost" type="button" title="Clear editor">Clear</button>
-        <button id="sample-btn" class="btn btn-ghost" type="button" title="Load sample code">Sample</button>
-        <button id="trace-btn"  class="btn btn-primary" type="button" aria-label="Run trace">
-          <span class="btn-icon">▶</span> Run Trace
-        </button>
-      </div>
+  <!-- Code-type toggle -->
+  <div id="type-bar">
+    <span class="type-label">Code type:</span>
+    <div class="type-toggle">
+      <label class="type-opt">
+        <input type="radio" name="code_type" value="complete" checked />
+        <span>📄 Complete Program</span>
+      </label>
+      <label class="type-opt">
+        <input type="radio" name="code_type" value="leetcode" />
+        <span>🧩 LeetCode Function</span>
+      </label>
     </div>
+    <span class="type-hint" id="type-hint">Include <code>main()</code> / entry point</span>
+  </div>
 
-    <!-- CodeMirror editor mount -->
-    <div class="editor-wrapper" id="editor-wrapper">
-      <textarea id="code-editor" aria-label="Code input area"
-                placeholder="Paste your code here…"></textarea>
-    </div>
+  <!-- Editor row: code left, input right -->
+  <div id="editor-row">
 
-    <!-- Pipeline status -->
-    <div class="pipeline" id="pipeline" aria-live="polite" aria-label="Trace pipeline status">
-      <div class="pipe-step" id="pipe-syntax" data-step="syntax">
-        <span class="pipe-dot"></span><span class="pipe-label">Syntax Check</span>
-      </div>
-      <div class="pipe-arrow">›</div>
-      <div class="pipe-step" id="pipe-trace" data-step="trace">
-        <span class="pipe-dot"></span><span class="pipe-label">Tracing</span>
-      </div>
-      <div class="pipe-arrow">›</div>
-      <div class="pipe-step" id="pipe-frames" data-step="frames">
-        <span class="pipe-dot"></span><span class="pipe-label">Rendering Frames</span>
-      </div>
-      <div class="pipe-arrow">›</div>
-      <div class="pipe-step" id="pipe-video" data-step="video">
-        <span class="pipe-dot"></span><span class="pipe-label">Building Video</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─────────────────────────── RIGHT: RESULT PANEL ─────────────────── -->
-  <section class="panel result-panel" aria-label="Trace results">
-
-    <!-- Panel header row -->
-    <div class="result-header">
-      <div class="result-header-title">
-        <span>📊</span> Output
-      </div>
-    </div>
-
-    <!-- Empty state -->
-    <div class="empty-state" id="empty-state">
-      <div class="empty-icon">⟨/⟩</div>
-      <h2 class="empty-title">Ready to trace</h2>
-      <p class="empty-sub">Write or paste any code on the left, then click <strong>Run Trace</strong> to visualize its execution.</p>
-      <ul class="empty-features">
-        <li>🔍 Syntax error detection</li>
-        <li>🎬 Step-by-step video</li>
-        <li>📊 Variable tracking</li>
-        <li>📞 Call-stack view</li>
-        <li>🌐 Multi-language support</li>
-        <li>⬇️ MP4 download</li>
-      </ul>
-    </div>
-
-    <!-- Loading state -->
-    <div class="loading-state hidden" id="loading-state" aria-label="Generating trace video">
-      <div class="spinner"></div>
-      <p class="loading-msg" id="loading-msg">Analysing code…</p>
-      <p class="loading-sub">This may take 15–60 seconds for longer programs.</p>
-    </div>
-
-    <!-- Error state -->
-    <div class="error-state hidden" id="error-state" role="alert">
-      <div class="error-icon">⚠</div>
-      <h3 class="error-title" id="error-title">Error</h3>
-      <p class="error-body"  id="error-body"></p>
-      <p class="error-line"  id="error-line"></p>
-    </div>
-
-    <!-- Result state -->
-    <div class="result-state hidden" id="result-state">
-
-      <!-- Video player -->
-      <div class="video-container" id="video-container">
-        <video id="trace-video" class="trace-video" controls preload="metadata"
-               aria-label="Execution trace video">
-          Your browser does not support the video tag.
-        </video>
-        <div class="video-overlay" id="video-overlay">
-          <span class="video-badge" id="video-step-badge">Step 1</span>
+    <!-- Code editor -->
+    <div class="editor-col" id="code-col">
+      <div class="panel-toolbar">
+        <span class="toolbar-title" id="editor-lang-label">Python Editor</span>
+        <div class="toolbar-btns">
+          <button id="sample-btn" class="tb-btn">📋 Sample</button>
+          <button id="clear-btn"  class="tb-btn">🗑️ Clear</button>
         </div>
       </div>
-
-      <!-- Stats row -->
-      <div class="stats-row" id="stats-row">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-steps">0</div>
-          <div class="stat-label">Steps</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-lang">—</div>
-          <div class="stat-label">Language</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-lines">0</div>
-          <div class="stat-label">Code Lines</div>
-        </div>
-        <div class="stat-card" id="stat-error-card" style="display:none">
-          <div class="stat-value" style="color:var(--red)">⚠</div>
-          <div class="stat-label">Runtime Error</div>
-        </div>
-      </div>
-
-      <!-- Step table -->
-      <div class="steps-section">
-        <button class="steps-toggle" id="steps-toggle" type="button"
-                aria-expanded="false" aria-controls="steps-table-wrapper">
-          Execution Steps <span class="steps-count" id="steps-count">0</span>
-          <span class="steps-chevron" id="steps-chevron">▼</span>
-        </button>
-        <div class="steps-table-wrapper hidden" id="steps-table-wrapper">
-          <table class="steps-table" id="steps-table" aria-label="Execution steps">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Line</th>
-                <th>Event</th>
-                <th>Variables</th>
-                <th>Output</th>
-              </tr>
-            </thead>
-            <tbody id="steps-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Download -->
-      <div class="download-row">
-        <a id="download-link" class="btn btn-ghost" download="trace.mp4">⬇ Download Video</a>
+      <div id="editor-wrapper">
+        <textarea id="code-editor" spellcheck="false" autocorrect="off" autocomplete="off"
+          placeholder="Write or paste your code here…"></textarea>
+        <div id="line-numbers" aria-hidden="true"></div>
       </div>
     </div>
 
-  </section>
-</main>
+    <!-- Custom input + info -->
+    <div class="editor-col" id="input-col">
+      <div class="panel-toolbar">
+        <span class="toolbar-title">Custom Input <span class="opt-badge">optional</span></span>
+      </div>
+      <textarea id="custom-input" spellcheck="false"
+        placeholder="Enter input values here (used when code reads from stdin).&#10;&#10;Example:&#10;5&#10;3 1 4 1 5"></textarea>
 
-<!-- ════════════════════════════════════════════════════════ FOOTER ════════ -->
-<footer class="app-footer" role="contentinfo">
-  <span>⟨trace⟩ &nbsp;·&nbsp; Code Execution Visualizer</span>
-  <span>Python · JavaScript · C · C++</span>
-</footer>
+      <div class="info-card">
+        <h3>💡 How it works</h3>
+        <ol>
+          <li>Select your language above</li>
+          <li>Choose <em>Complete Program</em> or <em>LeetCode Function</em></li>
+          <li>Write or paste your code</li>
+          <li>Add custom input if your code reads from stdin</li>
+          <li>Click <strong>Run Trace</strong> to see the animated dry-run!</li>
+        </ol>
+        <p class="info-sub">The visualizer shows <strong>array comparisons</strong>, <strong>variable updates</strong>, <strong>swaps</strong>, and <strong>function calls</strong> — step by step, just like a teacher on a whiteboard.</p>
+      </div>
+    </div>
 
-<!-- ════════════════════════════════════════════════════════ SCRIPTS ═══════ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/python/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/javascript/javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/mode/clike/clike.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/closebrackets.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/edit/matchbrackets.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.17/addon/display/autorefresh.min.js"></script>
+  </div><!-- /editor-row -->
 
+  <!-- Run action bar -->
+  <div id="action-bar">
+    <div id="error-inline" class="hidden">
+      <span class="err-icon">⛔</span>
+      <span id="error-inline-text"></span>
+    </div>
+    <button id="run-btn">
+      <span id="run-icon">▶</span>
+      <span id="run-text">Run Trace</span>
+    </button>
+  </div>
+
+</main><!-- /setup-panel -->
+
+<!-- ═══════════════════════════ LOADING ═══════════════════════════════════ -->
+<div id="loading-panel" class="hidden">
+  <div class="loader-ring"></div>
+  <p class="loader-text">Tracing execution…</p>
+  <p class="loader-sub">Capturing every step of your code</p>
+</div>
+
+<!-- ═══════════════════════════ SYNTAX ERROR ══════════════════════════════ -->
+<div id="syntax-panel" class="hidden">
+  <div class="syntax-card">
+    <div class="syntax-header">
+      <span class="syntax-icon">⛔</span>
+      <h2>Syntax Error Detected</h2>
+    </div>
+    <div class="syntax-body">
+      <div id="syntax-location"></div>
+      <pre id="syntax-message"></pre>
+    </div>
+    <div class="syntax-actions">
+      <p class="syntax-hint">⚠️ Fix the syntax error above before running the trace.</p>
+      <button id="syntax-back-btn" class="back-btn">← Back to Editor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ VISUALIZER ════════════════════════════════ -->
+<div id="viz-panel" class="hidden">
+
+  <!-- Viz header -->
+  <div id="viz-header">
+    <button id="viz-back-btn" class="back-btn">← Editor</button>
+    <div id="viz-meta">
+      <span id="viz-algo-name"></span>
+      <span id="viz-lang-badge" class="lang-badge"></span>
+    </div>
+    <button id="download-btn" class="tb-btn" title="Download video (generates on server)">⬇ Download Video</button>
+  </div>
+
+  <!-- Runtime error banner (non-blocking) -->
+  <div id="runtime-banner" class="hidden runtime-banner">
+    <span class="rb-icon">⚠️</span>
+    <div class="rb-body">
+      <strong>Runtime Error Detected</strong> — the trace still shows all steps before the crash.
+      <div id="rb-msg" class="rb-msg"></div>
+    </div>
+    <button id="rb-close" class="rb-close">✕</button>
+  </div>
+
+  <!-- Three-column visualizer -->
+  <div id="viz-columns">
+
+    <!-- LEFT: code panel -->
+    <div class="viz-col" id="col-code">
+      <div class="col-hdr">Code <span id="code-line-badge" class="line-badge"></span></div>
+      <div id="viz-code-scroll">
+        <div id="viz-code"></div>
+      </div>
+    </div>
+
+    <!-- CENTRE: data visualization -->
+    <div class="viz-col" id="col-viz">
+      <div class="col-hdr">Algorithm Visualization</div>
+      <div id="viz-array-area">
+        <!-- Array boxes, pointer arrows, comparison zone rendered here -->
+      </div>
+      <div id="viz-output-area" class="hidden">
+        <div class="col-hdr-sm">Output</div>
+        <pre id="viz-output-text"></pre>
+      </div>
+    </div>
+
+    <!-- RIGHT: explanation + variables + call stack -->
+    <div class="viz-col" id="col-info">
+      <div class="col-hdr">What's Happening?</div>
+      <div id="viz-explain"></div>
+
+      <div class="col-hdr-sm" style="margin-top:14px">Variables</div>
+      <div id="viz-vars"></div>
+
+      <div class="col-hdr-sm" style="margin-top:14px">Call Stack</div>
+      <div id="viz-stack"></div>
+    </div>
+
+  </div><!-- /viz-columns -->
+
+  <!-- Controls bar -->
+  <div id="viz-controls">
+    <div class="ctrl-btns">
+      <button id="ctrl-first" class="ctrl-btn" title="First step">⏮</button>
+      <button id="ctrl-prev"  class="ctrl-btn" title="Previous step">◀</button>
+      <button id="ctrl-play"  class="ctrl-btn ctrl-play" title="Play / Pause">▶ Play</button>
+      <button id="ctrl-next"  class="ctrl-btn" title="Next step">▶</button>
+      <button id="ctrl-last"  class="ctrl-btn" title="Last step">⏭</button>
+    </div>
+
+    <div class="ctrl-center">
+      <div id="progress-track">
+        <div id="progress-fill"></div>
+      </div>
+      <span id="step-count">Step 1 / 1</span>
+    </div>
+
+    <div class="ctrl-right">
+      <label class="speed-label">Speed</label>
+      <div class="speed-opts">
+        <button class="speed-btn" data-speed="0.5">0.5×</button>
+        <button class="speed-btn active" data-speed="1">1×</button>
+        <button class="speed-btn" data-speed="2">2×</button>
+        <button class="speed-btn" data-speed="4">4×</button>
+      </div>
+    </div>
+  </div><!-- /controls -->
+
+</div><!-- /viz-panel -->
+
+<script src="/js/visualizer.js"></script>
 <script src="/js/editor.js"></script>
-<script src="/js/player.js"></script>
 <script src="/js/main.js"></script>
 </body>
 </html>

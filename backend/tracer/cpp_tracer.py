@@ -93,8 +93,21 @@ class CppTracer:
                 timeout=20,
             )
             if compile_result.returncode != 0:
-                err = compile_result.stderr.strip().split("\n")[0]
-                return [self._err_step(1, err)]
+                # Filter out MinGW linker noise (libmingw32, WinMain etc.)
+                # and surface the first real user-code error line.
+                err_lines = compile_result.stderr.strip().split("\n")
+                real_err = next(
+                    (
+                        l for l in err_lines
+                        if l.strip()
+                        and "libmingw32" not in l
+                        and "WinMain" not in l
+                        and "collect2" not in l
+                        and "ld.exe" not in l
+                    ),
+                    err_lines[0] if err_lines else "Compilation failed.",
+                )
+                return [self._err_step(1, f"[COMPILE ERROR]  {real_err}")]
 
             with os.fdopen(gdb_fd, "w") as f:
                 f.write(_GDB_SCRIPT)
