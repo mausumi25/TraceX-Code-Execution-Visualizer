@@ -563,6 +563,63 @@ body {
 .error-body        { font-family: var(--font-mono); font-size: .8rem; color: var(--orange); max-width: 440px; word-break: break-word; line-height: 1.6; }
 .error-line        { font-size: .76rem; color: var(--text3); }
 
+/* ── Runtime error warning banner (non-blocking) ─────────────────────────── */
+/* Shown above the video when code has a runtime/logical error but execution   */
+/* steps were still captured. Amber palette = warning, not blocking failure.   */
+.runtime-error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 10px 14px;
+  padding: 12px 14px;
+  background: rgba(210, 153, 34, 0.10);
+  border: 1px solid rgba(210, 153, 34, 0.45);
+  border-left: 4px solid var(--orange);
+  border-radius: var(--radius);
+  font-size: .8rem;
+  color: var(--text);
+  line-height: 1.55;
+  animation: slideInBanner .25s ease-out;
+}
+@keyframes slideInBanner {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reb-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.reb-content {
+  flex: 1;
+  color: var(--text2);
+}
+.reb-content strong {
+  color: var(--orange);
+  font-weight: 700;
+}
+.reb-msg {
+  font-family: var(--font-mono);
+  font-size: .75rem;
+  color: var(--orange);
+  margin-top: 4px;
+  word-break: break-word;
+  opacity: .85;
+}
+.reb-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: .85rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+  margin-top: -2px;
+}
+.reb-close:hover { color: var(--text); background: var(--glass-hover); }
+
 /* ── Result state ────────────────────────────────────────────────────────── */
 .result-state {
   display: flex;
